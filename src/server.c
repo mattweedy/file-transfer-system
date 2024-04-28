@@ -1,3 +1,5 @@
+#include <pwd.h>
+#include <grp.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -10,67 +12,86 @@
 #include <sys/socket.h>
 
 // function signatures
-void *connection_handler(void *socket_desc);
+void *connection_handler(void *args);
 
 // define constants
 #define SERVER_PORT 8082
 #define BUF_SIZE 1024
+#define INFO_SIZE 1024
 
 // connection handler
-void *connection_handler(void *socket_desc) {
-    int sock = *(int*)socket_desc;
-    int READ_SIZE;
-    char client_message[BUF_SIZE];
-    char user_id[100];
+void *connection_handler(void *sock_desc) {
+    int sock = *(int*)sock_desc;
+    ssize_t READ_SIZE;
+    char buffer[BUF_SIZE];
+    char user_info[INFO_SIZE];
     char filepath[600];
+    int file;
 
-    // receive user id
-    if ((READ_SIZE = recv(sock, user_id, sizeof(user_id), 0)) < 0) {
-        user_id[READ_SIZE] = '\0';
-    } else {
-        perror("Failed to receive user id\n");
-        close(sock);
-        free(socket_desc);
+    memset(user_info, 0, INFO_SIZE);
+
+    // read user info from client
+    if ((READ_SIZE = recv(sock, user_info, sizeof(user_info), 0)) < 0) {
+        perror("Failed to receive user info\n");
+        return NULL;
+    }
+    user_info[READ_SIZE] = '\0';
+
+    // extract user and group from user_info
+    char *user = strtok(user_info, ":");
+    char *group = strtok(NULL, ":");
+
+    if (user == NULL || group == NULL) {
+        perror("Error parsing user info");
         return NULL;
     }
 
-    printf("User ID : %s\n", user_id);
+    printf("Received FILE from USER:[%s], GROUP:[%s]\n", user, group);
 
-    // construct filepath
-    snprintf(filepath, sizeof(filepath), "./server/%s_file", user_id);
+    // use group name to determine directory
+    snprintf(filepath, sizeof(filepath), "./server/%s/%s_file", group, user);
 
-    // open file to write data
-    int file = open(filepath, O_WRONLY | O_CREAT, 0666);
+    // create directory if it doesn't exist
+    char dirpath[1024];
+    snprintf(dirpath, sizeof(dirpath), "./server/%s", group);
+    struct stat st = {0};
+
+    // check if directory exists
+    if (stat(dirpath, &st) == -1) {
+        mkdir(dirpath, 0700);
+    }
+
+    // open or create file to write data to
+    file = open(filepath, O_WRONLY | O_CREAT, 0666);
     if (file < 0) {
         perror("Failed to open file");
         close(sock);
-        free(socket_desc);
         return NULL;
     }
 
-    // receive data from client
-    while ((READ_SIZE = recv(sock, client_message, BUF_SIZE, 0)) > 0) {
-        write(file, client_message, READ_SIZE);
+    // read data from client and write to file
+    while ((READ_SIZE = recv(sock, buffer, BUF_SIZE, 0)) > 0) {
+        write(file, buffer, READ_SIZE);
     }
 
+    // check if data was received
     if (READ_SIZE == -1) {
         perror("Failed to receive data\n");
     }
-    
+
     printf("File received and saved to %s\n", filepath);
 
     // close the file and socket
     close(file);
     close(sock);
-    free(socket_desc);
+    free(sock_desc);
     return NULL;
 }
 
 // main function
 int main(void) {
-    int sock_desc, client_sock, CONN_SIZE;
+    int sock_desc, client_sock, CONN_SIZE, *new_sock;
     struct sockaddr_in server, client;
-    pthread_t thread_id;
 
     // create a socket
     sock_desc = socket(AF_INET, SOCK_STREAM, 0);
@@ -96,23 +117,18 @@ int main(void) {
 
     // listen
     listen(sock_desc, 3);
+    printf("Server listening on port %d\n", SERVER_PORT);
 
     // accept incoming connections
-    printf("Server listening on port %d\n", SERVER_PORT);
     CONN_SIZE = sizeof(struct sockaddr_in);
     while ((client_sock = accept(sock_desc, (struct sockaddr *)&client, (socklen_t*)&CONN_SIZE))) {
-        int *new_sock = malloc(sizeof(int));
-        if (new_sock == NULL) {
-            perror("Failed to allocate memory\n");
-            continue;
-        }
+        pthread_t thread_id;
+        new_sock = malloc(sizeof(int));
         *new_sock = client_sock;
 
-        // create a new thread for each connection
-        if (pthread_create(&thread_id, NULL, connection_handler, (void*)new_sock) < 0) {
+        if (pthread_create(&thread_id, NULL, connection_handler, (void*) new_sock) < 0) {
             perror("Failed to create thread\n");
-            free(new_sock);
-            continue;
+            return 1;
         }
     }
 
