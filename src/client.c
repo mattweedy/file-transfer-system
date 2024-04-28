@@ -11,18 +11,22 @@
 // function signatures
 int main(int argc, char *argv[]);
 
+// define constants
+#define BUF_SIZE 1024
+#define INFO_SIZE 100
+
 // main function
 int main(int argc, char *argv[]) {
     int sock_desc;
     struct sockaddr_in server;
     char *filepath;
-    char buffer[1024] = {0};
+    char buffer[BUF_SIZE] = {0};
     ssize_t READ_SIZE;
     struct passwd *pw;
     struct group *grp;
     uid_t user_id;
     gid_t group_id;
-    char user_info[512];
+    char user_info[INFO_SIZE];
 
     // check if the user has provided a filepath
     if (argc < 2) {

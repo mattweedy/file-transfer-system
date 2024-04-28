@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.pro": "prolog",
+        "types.h": "c",
+        "fcntl.h": "c",
+        "grp.h": "c"
+    }
+}
