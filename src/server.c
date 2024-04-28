@@ -54,7 +54,9 @@ void *connection_handler(void *sock_desc) {
 
     // check if directory exists
     if (stat(dirpath, &st) == -1) {
-        mkdir(dirpath, 0700);
+        // create directory and set permissions
+        mkdir(dirpath, 0770);
+        chown(dirpath, user, group);
     }
 
     // calculate the maximum size needed for filepath
@@ -67,19 +69,16 @@ void *connection_handler(void *sock_desc) {
     snprintf(filepath, filepath_size, "%s/%s_file.txt", dirpath, user);
 
     // open or create file to write data to
-    file = open(filepath, O_WRONLY | O_CREAT, 0666);
+    file = open(filepath, O_WRONLY | O_CREAT, 0660);
     if (file < 0) {
         perror("Failed to open FILE");
         close(sock);
         return NULL;
     }
 
-    struct passwd *pw = getpwnam(user);
-    if (pw != NULL) {
-        if (chown(filepath, pw->pw_uid, pw->pw_gid) < 0) {
-            perror("Failed to change FILE ownership");
-        }
-    }
+    // set file permissions
+    fchmod(file, 0660);
+    fchown(file, user, group);
 
     // read data from client and write to file
     while ((READ_SIZE = recv(sock, buffer, BUF_SIZE, 0)) > 0) {
