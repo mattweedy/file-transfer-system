@@ -25,7 +25,6 @@ void *connection_handler(void *sock_desc) {
     ssize_t READ_SIZE;
     char buffer[BUF_SIZE];
     char user_info[INFO_SIZE];
-    char filepath[200];
     char dirpath[200];
     int file;
 
@@ -58,8 +57,14 @@ void *connection_handler(void *sock_desc) {
         mkdir(dirpath, 0700);
     }
 
+    // calculate the maximum size needed for filepath
+    size_t filepath_size = strlen(dirpath) + strlen(user) + strlen("_file.txt") + 2;
+
+    // declare filepath
+    char filepath[filepath_size];
+
     // construct the file path
-    snprintf(filepath, sizeof(filepath), "%s/%s_file.txt", dirpath, user);
+    snprintf(filepath, filepath_size, "%s/%s_file.txt", dirpath, user);
 
     // open or create file to write data to
     file = open(filepath, O_WRONLY | O_CREAT, 0666);
@@ -67,6 +72,13 @@ void *connection_handler(void *sock_desc) {
         perror("Failed to open FILE");
         close(sock);
         return NULL;
+    }
+
+    struct passwd *pw = getpwnam(user);
+    if (pw != NULL) {
+        if (chown(filepath, pw->pw_uid, pw->pw_gid) < 0) {
+            perror("Failed to change FILE ownership");
+        }
     }
 
     // read data from client and write to file

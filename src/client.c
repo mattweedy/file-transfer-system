@@ -46,6 +46,27 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    // check if user should be allowed to send the file
+    char real_path[200];
+    if (realpath(filepath, real_path) == NULL) {
+        perror("Failed to resolve real path");
+        return 1;
+    }
+
+    char expected_prefix[200];
+    char absolute_expected_prefix[200];
+    snprintf(expected_prefix, sizeof(expected_prefix), "../files/%s", grp->gr_name);
+    if (realpath(expected_prefix, absolute_expected_prefix) == NULL) {
+        perror("Failed to resolve absolute path for expected prefix");
+        return 1;
+    }
+
+    // Check if the real path starts with the expected prefix
+    if (strncmp(real_path, absolute_expected_prefix, strlen(absolute_expected_prefix)) != 0) {
+        fprintf(stderr, "ERROR: Users can only transfer files owned by their group.\n");
+        return 1;
+    }
+
     // prepare user info to send
     snprintf(user_info, sizeof(user_info), "%s:%s", pw->pw_name, grp->gr_name);
 
