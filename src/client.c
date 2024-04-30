@@ -12,6 +12,7 @@
 int main(int argc, char *argv[]);
 
 // define constants
+#define SERVER_PORT 8082
 #define BUF_SIZE 1024
 #define INFO_SIZE 100
 
@@ -81,7 +82,7 @@ int main(int argc, char *argv[]) {
     }
 
     // set socket variables
-    server.sin_port = htons(8082);                   // port number
+    server.sin_port = htons(SERVER_PORT);                   // port number
     server.sin_family = AF_INET;                     // IPv4
     server.sin_addr.s_addr = inet_addr("127.0.0.1"); // localhost
 
