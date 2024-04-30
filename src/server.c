@@ -32,7 +32,7 @@ void *connection_handler(void *sock_desc) {
 
     // read user info from client
     if ((READ_SIZE = recv(sock, user_info, sizeof(user_info), 0)) < 0) {
-        perror("Failed to receive USER INFO\n");
+        perror("FAILED to receive USER INFO\n");
         return NULL;
     }
     user_info[READ_SIZE] = '\0';
@@ -42,11 +42,11 @@ void *connection_handler(void *sock_desc) {
     char *group = strtok(NULL, ":");
 
     if (user == NULL || group == NULL) {
-        perror("Error parsing USER INFO");
+        perror("ERROR parsing USER INFO");
         return NULL;
     }
 
-    printf("Received FILE from USER:[%s], GROUP:[%s]\n", user, group);
+    printf("RECEIVED file from USER:[%s], GROUP:[%s]\n", user, group);
 
     // create directory if it doesn't exist
     snprintf(dirpath, sizeof(dirpath), "../server/%s", group);
@@ -71,7 +71,7 @@ void *connection_handler(void *sock_desc) {
     // open or create file to write data to
     file = open(filepath, O_WRONLY | O_CREAT, 0660);
     if (file < 0) {
-        perror("Failed to open FILE");
+        perror("FAILED to open FILE");
         close(sock);
         return NULL;
     }
@@ -87,10 +87,10 @@ void *connection_handler(void *sock_desc) {
 
     // check if data was received
     if (READ_SIZE == -1) {
-        perror("Failed to receive DATA\n");
+        perror("FAILED to receive DATA\n");
     }
 
-    printf("FILE received and SAVED to [%s]\n", filepath);
+    printf("SAVED file to [%s]\n", filepath);
 
     // close the file and socket
     close(file);
@@ -107,10 +107,10 @@ int main(void) {
     // create a socket
     sock_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_desc == -1) {
-        perror("Couldn't create socket\n");
+        perror("FAILED to create socket\n");
         return 1;
     } else {
-        printf("Socket created\n");
+        printf("CREATED socket\n");
     }
 
     // set socket variables
@@ -120,15 +120,15 @@ int main(void) {
 
     // bind
     if (bind(sock_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
-        perror("Bind failed\n");
+        perror("FAILED Bind\n");
         return 1;
     } else {
-        printf("Bind successful\n");
+        printf("SUCCESS Bind\n");
     }
 
     // listen
     listen(sock_desc, 3);
-    printf("Server listening on port %d\n", SERVER_PORT);
+    printf("SERVER LISTENING on port [%d]...\n", SERVER_PORT);
 
     // accept incoming connections
     CONN_SIZE = sizeof(struct sockaddr_in);
@@ -138,14 +138,14 @@ int main(void) {
         *new_sock = client_sock;
 
         if (pthread_create(&thread_id, NULL, connection_handler, (void*) new_sock) < 0) {
-            perror("Failed to create thread\n");
+            perror("FAILED to create thread\n");
             return 1;
         }
     }
 
     // check if accept failed
     if (client_sock < 0) {
-        perror("Accept failed\n");
+        perror("FAILED accept\n");
         return 1;
     }
 

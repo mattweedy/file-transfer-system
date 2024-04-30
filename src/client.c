@@ -42,22 +42,23 @@ int main(int argc, char *argv[]) {
     grp = getgrgid(group_id);
 
     if (!pw || !grp) {
-        perror("Failed to get user or group\n");
+        perror("FAILED to get user or group\n");
         return 1;
     }
 
     // check if user should be allowed to send the file
     char real_path[200];
     if (realpath(filepath, real_path) == NULL) {
-        perror("Failed to resolve real path");
+        perror("FAILED to resolve real path");
         return 1;
     }
 
+    // check if the file belongs to the user's group
     char expected_prefix[200];
     char absolute_expected_prefix[200];
     snprintf(expected_prefix, sizeof(expected_prefix), "../files/%s", grp->gr_name);
     if (realpath(expected_prefix, absolute_expected_prefix) == NULL) {
-        perror("Failed to resolve absolute path for expected prefix");
+        perror("FAILED to resolve absolute path for expected prefix");
         return 1;
     }
 
@@ -73,10 +74,10 @@ int main(int argc, char *argv[]) {
     // create a socket
     sock_desc = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_desc == -1) {
-        perror("Couldn't create socket\n");
+        perror("FAILED to create socket\n");
         return 1;
     } else {
-        printf("Socket created\n");
+        printf("CREATED socket\n");
     }
 
     // set socket variables
@@ -86,29 +87,29 @@ int main(int argc, char *argv[]) {
 
     // connect to the server
     if (connect(sock_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
-        perror("Connection failed\n");
+        perror("FAILED to connect\n");
         return 1;
     }
 
-    printf("Connected to server\n");
+    printf("SUCCESS Connected to server\n");
 
     // send the user id to the server
     if (send(sock_desc, user_info, strlen(user_info), 0) < 0) {
-        perror("Failed to send user id\n");
+        perror("FAILED to send user id\n");
         return 1;
     }
 
     // open the file
     int file = open(filepath, O_RDONLY);
     if (file < 0) {
-        perror("Failed to open file");
+        perror("FAILED to open file");
         return 1;
     }
 
     // send file contents
     while ((READ_SIZE = read(file, buffer, sizeof(buffer))) > 0) {
         if (send(sock_desc, buffer, READ_SIZE, 0) < 0) {
-            perror("Failed to send file\n");
+            perror("FAILED to send file\n");
             close(file);
             return 1;
         }
@@ -116,12 +117,12 @@ int main(int argc, char *argv[]) {
 
     // check if the file was read successfully
     if (READ_SIZE < 0) {
-        perror("Failed to read file\n");
+        perror("FAILED to read file\n");
         close(file);
         return 1;
     }
 
-    printf("File [%s] from transfer owner [%s] sent successfully\n", filepath, pw->pw_name);
+    printf("SENT file [%s] from transfer owner [%s] successfully\n", filepath, pw->pw_name);
 
     // close the file and socket
     close(file);
