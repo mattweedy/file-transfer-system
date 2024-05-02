@@ -56,7 +56,7 @@ void *connection_handler(void *sock_desc) {
     if (stat(dirpath, &st) == -1) {
         // create directory and set permissions
         mkdir(dirpath, 0770);
-        chown(dirpath, user, group);
+        chown(dirpath, *user, *group);
     }
 
     // calculate the maximum size needed for filepath
@@ -78,7 +78,7 @@ void *connection_handler(void *sock_desc) {
 
     // set file permissions
     fchmod(file, 0660);
-    fchown(file, user, group);
+    fchown(file, *user, *group);
 
     // read data from client and write to file
     while ((READ_SIZE = recv(sock, buffer, BUF_SIZE, 0)) > 0) {
